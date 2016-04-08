@@ -4,8 +4,8 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using Village.DataAccess.Repository;
 using Village.Model;
-using Village.Service.Repository;
 using Village.Service.Service;
 using Xunit;
 
@@ -13,40 +13,49 @@ namespace Vilage.Fact.TestingService
 {
     public class InvoiceServiceTest
     {
+
+
         [Fact]
         public void GenerateInvoice()
         {
-            InvoiceService sut = new InvoiceService();
-            int year = 2005;
-            int month = 3;
-            Invoice invoice = sut.GenerateInvoice(year, month);
-            Assert.Equal(year, invoice.CreateDate.Year);
-            Assert.Equal(month, invoice.CreateDate.Month);
-        }
-
-        [Fact]
-        public void GenerateInvoiceWithOwnerId()
-        {
-            InvoiceService sut = new InvoiceService();
+            Mock<IInvoiceRepository> mock = new Mock<IInvoiceRepository>();
+            Mock<IPropertyRepository> fakeHouse = new Mock<IPropertyRepository>();
+            InvoiceService sut = new InvoiceService(mock.Object, fakeHouse.Object);
             int year = 2005;
             int month = 4;
-            int ownerId = 99;
-            Invoice invoice = sut.GenerateInvoice(year, month, ownerId);
-            Assert.Equal(year, invoice.CreateDate.Year);
-            Assert.Equal(month, invoice.CreateDate.Month);
-            Assert.Equal(ownerId, invoice.OwnerId);
+            var owner = new Owner();
+            Invoice invoice = sut.GenerateInvoice(year, month, owner);
+            Assert.Equal(year, invoice.DueDate.Year);
+            Assert.Equal(month+1, invoice.DueDate.Month);
+            Assert.Same(owner, invoice.Owner);
+            //Assert.Equal(ownerId, invoice.OwnerId);
         }
 
         [Fact]
-        public void GetInvoiceByOwner_CallRepo()
+        public void GenerateInvoices_Equal_2()
         {
-           
-            int ownerId = 9999;
             Mock<IInvoiceRepository> mock = new Mock<IInvoiceRepository>();
-            mock.Setup(repo => repo.GetInvoiceByOwner(ownerId));
-            InvoiceService sut = new InvoiceService(mock.Object);
-            List<Invoice> listOfInvoice = sut.GetInvoiceByService(ownerId);
-            mock.Verify(repo => repo.GetInvoiceByOwner(ownerId), Times.Once());
+            Mock<IPropertyRepository> fakeHouse = new Mock<IPropertyRepository>();
+
+            List<House> listHouse = new List<House>() {
+               new House() {
+                    //Owner = new Owner()
+               },
+               new House() {
+                    //Owner = new Owner()
+               },
+               new House() {
+               }
+            };
+
+            fakeHouse.Setup(fakeRepo => fakeRepo.GetAllHouse()).Returns(listHouse);
+            InvoiceService sut = new InvoiceService(mock.Object, fakeHouse.Object);
+            int year = 2005;
+            int month = 3;
+            List<Invoice> invoiceList = sut.GenerateInvoices(year, month);
+            fakeHouse.Verify(repo => repo.GetAllHouse(), Times.Once);
+            Assert.NotNull(invoiceList);
+            Assert.Equal(2, invoiceList.Count);
         }
     }
 }

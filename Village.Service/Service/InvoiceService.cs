@@ -1,32 +1,44 @@
 ﻿using System;
+using System.Collections;
 using System.Collections.Generic;
+using System.Linq;
+using Village.DataAccess.Repository;
 using Village.Model;
-using Village.Service.Repository;
 
 namespace Village.Service.Service
 {
     public class InvoiceService
     {
         private IInvoiceRepository invoiceRepository;
+        private IPropertyRepository houseRepository;
 
-        public InvoiceService() { }
-
-        public InvoiceService(IInvoiceRepository _invoiceRepo)
+        public InvoiceService(IInvoiceRepository _invoiceRepo, IPropertyRepository _houseRepository)
         {
             this.invoiceRepository = _invoiceRepo;
+            this.houseRepository = _houseRepository;
         }
 
-        public Invoice GenerateInvoice(int year, int month)
+        /// <summary>
+        ///  Create Invoices in this month
+        /// </summary>
+        /// <param name="year">Year</param>
+        /// <param name="month">Month</param>
+        /// <returns></returns>
+        public List<Invoice> GenerateInvoices(int year, int month)
         {
-            var invoice = new Invoice();
-            invoice.CreateDate = new DateTime(year,month,5);
-            return invoice;
+            var houseList = houseRepository.GetAllHouse();
+            return houseList
+                .Where(house=>house.Owner != null).Select(house => this.GenerateInvoice(year, month, house.Owner)).ToList();
         }
 
-        public Invoice GenerateInvoice(int year, int month, int ownerId)
+        public Invoice GenerateInvoice(int year, int month, Owner owner)
         {
-            Invoice invoice = this.GenerateInvoice(year, month);
-            invoice.OwnerId = ownerId;
+            Invoice invoice = new Invoice()
+            {
+                CreateDate = DateTime.Now,
+                DueDate = new DateTime(year, month + 1, 5),
+                Owner = owner
+            };
             return invoice;
         }
 
